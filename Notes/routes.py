@@ -2,9 +2,23 @@ from Notes import app, db
 from flask import render_template, request, flash, redirect
 from Notes.models import User, Note
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import login_user, login_required, logout_user, current_user
+from flask_login import LoginManager
+
+login_manager = LoginManager(app)
+
+
+@login_manager.user_loader
+def load_user(id):
+    return User.query.get(int(id))
+
+@app.route('/')
+def index():
+    return render_template('base.html')
 
 
 @app.route('/home')
+@login_required
 def home():
     return render_template('home.html')
 
@@ -18,16 +32,19 @@ def login():
         if user:
             if check_password_hash(user.password, password):
                 flash('Logged in successfully!', category='success')
+                login_user(user, remember=True)
                 return redirect('/home')
             else:
                 flash('Incorrect password, try again.', category='error')
         else:
             flash('Email does not exist.', category='error')
-    return render_template('login.html')
+    return render_template('login.html', boolean=True)
 
 @app.route('/logout')
+@login_required
 def logout():
-    return "<p>Logout</p>"
+    logout_user()
+    return redirect('/login')
 
 @app.route('/sign-up', methods=['GET','POST'])
 def sign_up():
@@ -52,6 +69,7 @@ def sign_up():
             new_user = User(email=email, first_name=first_name, password=generate_password_hash(password1,method='sha256'))
             db.session.add(new_user)
             db.session.commit()
+            login_user(user, remember=True)
             flash('Account Created!', category='success')
             return redirect('/home')
     return render_template('sign_up.html')
