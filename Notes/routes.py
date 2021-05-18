@@ -14,13 +14,22 @@ def load_user(id):
 
 @app.route('/')
 def index():
-    return render_template('base.html')
+    return render_template('base.html', user=current_user)
 
 
-@app.route('/home')
+@app.route('/home', methods=['GET','POST'])
 @login_required
 def home():
-    return render_template('home.html')
+    if request.method == 'POST':
+        note = request.form.get('note')
+        if len(note) < 1:
+            flash('Note is too short!', category='error')
+        else:
+            new_note = Note(data=note, user_id=current_user.id)
+            db.session.add(new_note)
+            db.session.commit()
+            flash('Note Added', category='success')
+    return render_template('home.html', user=current_user)
 
 @app.route('/login', methods=['GET','POST'])
 def login():
@@ -38,7 +47,7 @@ def login():
                 flash('Incorrect password, try again.', category='error')
         else:
             flash('Email does not exist.', category='error')
-    return render_template('login.html', boolean=True)
+    return render_template('login.html', user=current_user)
 
 @app.route('/logout')
 @login_required
@@ -69,7 +78,7 @@ def sign_up():
             new_user = User(email=email, first_name=first_name, password=generate_password_hash(password1,method='sha256'))
             db.session.add(new_user)
             db.session.commit()
-            login_user(user, remember=True)
+            #login_user(user, remember=True)
             flash('Account Created!', category='success')
-            return redirect('/home')
-    return render_template('sign_up.html')
+            return redirect('/')
+    return render_template('sign_up.html', user=current_user)
