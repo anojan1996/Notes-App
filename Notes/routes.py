@@ -1,9 +1,10 @@
 from Notes import app, db
-from flask import render_template, request, flash, redirect
+from flask import render_template, request, flash, redirect,jsonify
 from Notes.models import User, Note
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user, current_user
 from flask_login import LoginManager
+import json
 
 login_manager = LoginManager(app)
 
@@ -82,3 +83,14 @@ def sign_up():
             flash('Account Created!', category='success')
             return redirect('/')
     return render_template('sign_up.html', user=current_user)
+
+@app.route('/delete-note', methods=['POST'])
+def delete_note():
+    note = json.loads(request.data)
+    noteId = note['noteId']
+    note = Note.query.get(noteId)
+    if note:
+        if note.user_id == current_user.id:
+            db.session.delete(note)
+            db.session.commit()
+    return jsonify({})
